@@ -4,7 +4,10 @@ $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
 cargo build --release
-Copy-Item target\release\noti-fai.exe dist\ -Force
+if ($LASTEXITCODE) { throw 'cargo build failed' }
+# Set CARGO_TARGET_DIR to a short path if linking fails on a long folder path.
+$target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { 'target' }
+Copy-Item "$target\release\noti-fai.exe" dist\ -Force
 
 $stage = Join-Path $env:TEMP 'noti-fai-release'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue

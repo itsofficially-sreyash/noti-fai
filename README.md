@@ -26,13 +26,13 @@ back in that exact app or browser tab.
 ### 1. Download
 
 Grab **`noti-fai-windows-x64.zip`** from the
-[latest release](../../releases/latest) and unzip it somewhere permanent, for
-example `D:\noti-fai` or `C:\Tools\noti-fai`. Don't use Downloads or Temp: the
-browser bridge points at this folder.
+[latest release](../../releases/latest) and extract it somewhere permanent,
+for example `D:\` or `C:\Tools\`. The zip contains a `noti-fai` folder. Don't use
+Downloads or Temp: the browser bridge points at this folder.
 
 ### 2. Install
 
-Open PowerShell in that folder and run:
+Open PowerShell in the extracted `noti-fai` folder and run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
