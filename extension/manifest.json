@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ballpop",
+  "version": "0.1.0",
+  "description": "Drops a bouncing ball on your desktop when an AI chat finishes replying in a background tab.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApZz38fRskWn5/RqARFNdV36G/h9vScjYlj0u0BK2MlpaKbzV82kjkjSx5h8bkhKnPATMAv/GLZnzDfUYSZl9TyQq2dXHgFOEDGfw/b9hQgTGw7r9sFR7HoH55gTdhb+Ezs83Z4Yha9PNvkKp6MjQRKjiLCWayGNfX7nfhPcQVv1hBmKESqqJRdKZVxS4anz0Wldx+2bN6LapATZU2kk4CsbWeqkjqwyLbucvH1rrnWgOr6XvxaJ/amLNcKyUrPI1moReVHsRIPWqP2iLpLd3gBUTeULL3BqGf3MjS1ALbtXL3opds+c+xFPmJSqjxLXL5tWZ2Kj9UD+9beUKNYOlOwIDAQAB",
+  "permissions": ["nativeMessaging"],
+  "icons": { "128": "icons/claude.png" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://chatgpt.com/*",
+        "https://grok.com/*",
+        "https://gemini.google.com/*",
+        "https://www.perplexity.ai/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
