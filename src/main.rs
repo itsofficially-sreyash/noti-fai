@@ -1,6 +1,6 @@
-//! ballpop: a bouncing-ball notification for when an AI agent finishes.
+//! noti-fai: a bouncing-ball notification for when an AI agent finishes.
 //!
-//! There is no resident daemon. `ballpop notify` hands its event to a running
+//! There is no resident daemon. `noti-fai notify` hands its event to a running
 //! host (via WM_COPYDATA) or starts a detached one, then returns at once so
 //! the caller (e.g. a Claude Code hook) is never blocked. The host exits as
 //! soon as its last ball is dismissed, so between notifications nothing runs.
@@ -31,9 +31,9 @@ use windows_sys::Win32::UI::HiDpi::*;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-const HOST_CLASS: &str = "BallPopHost";
-const BALL_CLASS: &str = "BallPopBall";
-const MUTEX_NAME: &str = "Local\\BallPopHost";
+const HOST_CLASS: &str = "NotiFaiHost";
+const BALL_CLASS: &str = "NotiFaiBall";
+const MUTEX_NAME: &str = "Local\\NotiFaiHost";
 const COPYDATA_MAGIC: usize = 0xBA11;
 /// Asks the host to drop the balls owned by a callback window.
 const COPYDATA_REMOVE: usize = 0xBA12;
@@ -69,16 +69,16 @@ fn main() {
 
 unsafe fn usage() {
     let text = wide(
-        "ballpop notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]\n\
-         ballpop watch   (turn desktop AI app notifications into balls)\n\
-         ballpop quit\n\n\
+        "noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]\n\
+         noti-fai watch   (turn desktop AI app notifications into balls)\n\
+         noti-fai quit\n\n\
          --agent   claude, chatgpt, grok, gemini, ... (picks icons\\NAME.png,\n\
          \x20         else the installed app's own logo)\n\
          --icon    image to show on the ball (png, ico, jpg, bmp)\n\
          --hwnd    window to focus on click (default: the caller's window)\n\
          --always  show even if that window is already in front",
     );
-    MessageBoxW(null_mut(), text.as_ptr(), wide("ballpop").as_ptr(), MB_OK);
+    MessageBoxW(null_mut(), text.as_ptr(), wide("noti-fai").as_ptr(), MB_OK);
 }
 
 // ---------------------------------------------------------------- client
@@ -155,7 +155,7 @@ unsafe fn find_app_window(agent: &str) -> HWND {
     found
 }
 
-/// Starts `ballpop host <payload>` fully detached: no console, no inherited
+/// Starts `noti-fai host <payload>` fully detached: no console, no inherited
 /// handles (so a hook's output pipes close), outside the caller's job object.
 unsafe fn spawn_host(payload: &str) {
     let Ok(exe) = std::env::current_exe() else { return };

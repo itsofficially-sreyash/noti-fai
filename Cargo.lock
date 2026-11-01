@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "ballpop"
+name = "noti-fai"
 version = "0.1.0"
 dependencies = [
  "windows",

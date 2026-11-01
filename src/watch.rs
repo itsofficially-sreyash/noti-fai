@@ -1,4 +1,4 @@
-//! `ballpop watch`: turns notifications from desktop AI apps (Claude,
+//! `noti-fai watch`: turns notifications from desktop AI apps (Claude,
 //! ChatGPT, ...) into balls.
 //!
 //! Unpackaged apps can read toasts but cannot subscribe to the "new toast"
@@ -32,7 +32,7 @@ const LINGER_POLLS: u32 = 10;
 const RESCAN_POLLS: u32 = 15;
 
 pub unsafe fn run() {
-    let _single = CreateMutexW(null(), 0, wide("Local\\BallPopWatch").as_ptr());
+    let _single = CreateMutexW(null(), 0, wide("Local\\NotiFaiWatch").as_ptr());
     if GetLastError() == ERROR_ALREADY_EXISTS {
         return;
     }

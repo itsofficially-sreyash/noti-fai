@@ -1,6 +1,6 @@
 // One native port per tab with a ball on screen. The port is opened only
 // while that ball exists, so nothing runs on the desktop side otherwise.
-const HOST = "com.ballpop.host";
+const HOST = "com.notifai.host";
 const ports = new Map(); // tabId -> Port
 const icons = new Map(); // agent -> base64 of the bundled icons/<agent>.png
 

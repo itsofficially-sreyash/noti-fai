@@ -19,7 +19,7 @@ use crate::{wide, COPYDATA_MAGIC, COPYDATA_REMOVE};
 static REPLIED: AtomicBool = AtomicBool::new(false);
 
 pub unsafe fn run() {
-    let class = wide("BallPopRelay");
+    let class = wide("NotiFaiRelay");
     let mut wc: WNDCLASSW = zeroed();
     wc.hInstance = GetModuleHandleW(null());
     wc.lpfnWndProc = Some(relay_proc);
@@ -109,13 +109,13 @@ fn field<'a>(json: &'a str, name: &str) -> Option<&'a str> {
     Some(&rest[..rest.find('"')?])
 }
 
-/// Saves the site's icon (base64) to %TEMP%\ballpop-icons\<agent>.img.
+/// Saves the site's icon (base64) to %TEMP%\noti-fai-icons\<agent>.img.
 fn save_icon(agent: &str, b64: &str) -> Option<String> {
     let bytes = base64_decode(b64)?;
     if bytes.is_empty() {
         return None;
     }
-    let dir = std::env::temp_dir().join("ballpop-icons");
+    let dir = std::env::temp_dir().join("noti-fai-icons");
     std::fs::create_dir_all(&dir).ok()?;
     let path = dir.join(format!("{agent}.img"));
     if std::fs::read(&path).ok().as_deref() != Some(&bytes[..]) {

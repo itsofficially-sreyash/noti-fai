@@ -1,4 +1,4 @@
-# ballpop 🏀
+# noti-fai 🏀
 
 **A bouncing-ball notification for when your AI finishes replying.**
 
@@ -7,7 +7,7 @@ When the answer is ready, a ball with that AI's logo drops onto your screen. It
 bounces (h, h/2, h/4, …), rolls along the bottom and waits. Click it and you're
 back in that exact app or browser tab.
 
-![ballpop balls resting on the taskbar](docs/balls.png)
+![noti-fai balls resting on the taskbar](docs/balls.png)
 
 - **Tiny:** one native ~270 KB Windows exe with no Electron and no runtime.
   Nothing runs while there's no ball on screen.
@@ -25,9 +25,9 @@ back in that exact app or browser tab.
 
 ### 1. Download
 
-Grab **`ballpop-windows-x64.zip`** from the
+Grab **`noti-fai-windows-x64.zip`** from the
 [latest release](../../releases/latest) and unzip it somewhere permanent, for
-example `D:\ballpop` or `C:\Tools\ballpop`. Don't use Downloads or Temp: the
+example `D:\noti-fai` or `C:\Tools\noti-fai`. Don't use Downloads or Temp: the
 browser bridge points at this folder.
 
 ### 2. Install
@@ -40,15 +40,15 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 This sets up everything for your user only, with no admin rights needed:
 
-- registers ballpop with Chrome and Edge so the extension can talk to it
+- registers noti-fai with Chrome and Edge so the extension can talk to it
 - starts the desktop watcher now and adds it to your sign-in startup
-  (`ballpop watch`)
+  (`noti-fai watch`)
 
 ### 3. Add the browser extension
 
 1. Open `chrome://extensions` (or `edge://extensions`).
 2. Turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select the `extension` folder inside your ballpop
+3. Click **Load unpacked** and select the `extension` folder inside your noti-fai
    folder.
 
 That's it. Ask a chatbot something, switch tabs, and wait for the ball.
@@ -56,7 +56,7 @@ That's it. Ask a chatbot something, switch tabs, and wait for the ball.
 ### Try it right away
 
 ```powershell
-.\dist\ballpop.exe notify --agent claude --always
+.\dist\noti-fai.exe notify --agent claude --always
 ```
 
 ### Uninstall
@@ -71,11 +71,11 @@ Then remove the extension from `chrome://extensions` and delete the folder.
 
 ## What triggers a ball
 
-| Where you chat | How ballpop knows it's done |
+| Where you chat | How noti-fai knows it's done |
 |---|---|
 | Claude desktop (chat and Code tab), ChatGPT, Copilot, Perplexity desktop apps | The app's own "response ready" Windows notification |
 | claude.ai, chatgpt.com, grok.com, gemini.google.com, perplexity.ai | The extension sees the site's **Stop** button disappear |
-| Claude Code CLI, scripts, anything else | Run `ballpop notify` (see below) |
+| Claude Code CLI, scripts, anything else | Run `noti-fai notify` (see below) |
 
 For desktop apps, make sure notifications are on for them in **Windows Settings →
 System → Notifications**. In the browser, no ball appears if you were already
@@ -89,7 +89,7 @@ Add to `~/.claude/settings.json`:
 {
   "hooks": {
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "\"D:/ballpop/dist/ballpop.exe\" notify --agent claude" } ] }
+      { "hooks": [ { "type": "command", "command": "\"D:/noti-fai/dist/noti-fai.exe\" notify --agent claude" } ] }
     ]
   }
 }
@@ -131,9 +131,9 @@ How it stays this light:
 ## Command line
 
 ```
-ballpop notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]
-ballpop watch
-ballpop quit
+noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]
+noti-fai watch
+noti-fai quit
 ```
 
 | Option | Meaning |
@@ -163,10 +163,10 @@ You need [Rust](https://rustup.rs) with the MSVC toolchain (Visual Studio Build
 Tools, "Desktop development with C++").
 
 ```powershell
-git clone https://github.com/<you>/ballpop
-cd ballpop
+git clone https://github.com/itsofficially-sreyash/noti-fai
+cd noti-fai
 cargo build --release
-copy target\release\ballpop.exe dist\
+copy target\release\noti-fai.exe dist\
 ```
 
 To produce the release zip:
@@ -184,7 +184,7 @@ src/native.rs      browser bridge (Chrome/Edge native messaging)
 extension/         Chrome/Edge extension (Manifest V3)
 dist/icons/        bundled logos
 install.ps1        per-user install and uninstall
-package.ps1        builds ballpop-windows-x64.zip
+package.ps1        builds noti-fai-windows-x64.zip
 ```
 
 ---
@@ -195,7 +195,7 @@ package.ps1        builds ballpop-windows-x64.zip
   you're using now. Run it again after moving the folder. Then reload the
   extension.
 - **No ball from Claude desktop:** turn on Windows notifications for Claude, and
-  check that `ballpop.exe` is running (Task Manager → Details).
+  check that `noti-fai.exe` is running (Task Manager → Details).
 - **A site changed and stopped working:** the site probably renamed its Stop
   button. Update the selector in `extension/content.js`; pull requests are
   welcome.
@@ -209,5 +209,5 @@ would be great additions.
 
 [MIT](LICENSE). Claude, ChatGPT, Grok, Gemini, Perplexity and Copilot names and
 logos are trademarks of their respective owners. They are used here only to show
-which assistant finished. ballpop is not affiliated with or endorsed by any of
+which assistant finished. noti-fai is not affiliated with or endorsed by any of
 them.

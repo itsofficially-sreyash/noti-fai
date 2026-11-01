@@ -1,23 +1,23 @@
-# Registers ballpop for the current user (no admin needed):
+# Registers noti-fai for the current user (no admin needed):
 #   - the browser bridge for Chrome and Edge (native messaging host)
-#   - `ballpop watch` at sign-in, for desktop app notifications
+#   - `noti-fai watch` at sign-in, for desktop app notifications
 # Run again after moving the folder. `-Uninstall` removes everything.
 param([switch]$Uninstall)
 
 $ErrorActionPreference = 'Stop'
-$name = 'com.ballpop.host'
+$name = 'com.notifai.host'
 $extensionId = 'jfolfoeeoohihembfjoghamkchchgmlc'
-$exe = Join-Path $PSScriptRoot 'dist\ballpop.exe'
+$exe = Join-Path $PSScriptRoot 'dist\noti-fai.exe'
 $manifest = Join-Path $PSScriptRoot "dist\$name.json"
 $browsers = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts', 'HKCU:\Software\Microsoft\Edge\NativeMessagingHosts'
-$shortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'ballpop watch.lnk'
+$shortcut = Join-Path ([Environment]::GetFolderPath('Startup')) 'noti-fai watch.lnk'
 
-Get-Process ballpop -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process noti-fai -ErrorAction SilentlyContinue | Stop-Process -Force
 
 if ($Uninstall) {
     foreach ($b in $browsers) { Remove-Item "$b\$name" -ErrorAction SilentlyContinue }
     Remove-Item $shortcut, $manifest -ErrorAction SilentlyContinue
-    'ballpop removed.'
+    'noti-fai removed.'
     return
 }
 
@@ -25,7 +25,7 @@ if (-not (Test-Path $exe)) { throw "Build first: $exe not found (cargo build --r
 
 [ordered]@{
     name            = $name
-    description     = 'ballpop bouncing-ball notifications'
+    description     = 'noti-fai bouncing-ball notifications'
     path            = $exe
     type            = 'stdio'
     allowed_origins = @("chrome-extension://$extensionId/")
@@ -42,5 +42,5 @@ $link.Arguments = 'watch'
 $link.Save()
 Start-Process $exe -ArgumentList 'watch'
 
-"ballpop installed. Watcher running and set to start at sign-in."
+"noti-fai installed. Watcher running and set to start at sign-in."
 "Now load the extension: chrome://extensions > Developer mode > Load unpacked > $(Join-Path $PSScriptRoot 'extension')"

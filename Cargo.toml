@@ -1,11 +1,11 @@
 [package]
-name = "ballpop"
+name = "noti-fai"
 version = "0.1.0"
 edition = "2021"
 description = "A bouncing-ball notification when an AI agent finishes generating"
 license = "MIT"
 
-# WinRT, only for reading other apps' toasts in `ballpop watch`.
+# WinRT, only for reading other apps' toasts in `noti-fai watch`.
 [dependencies.windows]
 version = "0.62"
 features = [
