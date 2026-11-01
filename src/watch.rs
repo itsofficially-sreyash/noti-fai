@@ -96,7 +96,8 @@ pub unsafe fn run() {
             if let Some(agent) = AGENTS.iter().find(|a| app.contains(*a)) {
                 // The app already decided this was worth a toast (e.g. a reply
                 // in another chat while its window is open), so always show.
-                crate::deliver(agent, crate::find_app_window(agent), "", null_mut(), true);
+                // No sound: the toast itself already played one.
+                crate::deliver(agent, crate::find_app_window(agent), "", null_mut(), true, false);
             }
         }
     }

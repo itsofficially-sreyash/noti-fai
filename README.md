@@ -16,6 +16,8 @@ back in that exact app or browser tab.
   perplexity.ai in Chrome or Edge.
 - **Takes you back:** click a ball to focus the right window or tab. Right-click
   dismisses it, and it goes away by itself when you return there on your own.
+- **You'll hear it too:** a ball drops with the Windows notification sound, so
+  you notice even when you aren't looking at the screen.
 
 > Windows 10/11 only for now.
 
@@ -106,7 +108,7 @@ Measured on Windows 11, with a 112 px ball at 175% display scaling:
 | Part | When | CPU | RAM (private) |
 |---|---|---|---|
 | Ball | bouncing (~4 s) | ~2% of one core | 1.6 MB |
-| Ball | resting | 0% | 1.6 MB |
+| Ball | resting | 0% | 1.6 MB (2.8 MB if it played a sound) |
 | Ball | no ball on screen | not running | 0 |
 | Desktop watcher | first 2 min after you leave an AI app | ~1% of one core | 3 MB |
 | Desktop watcher | 2–30 min after you leave it | ~0.2% of one core | 3 MB |
@@ -137,7 +139,7 @@ How it stays this light:
 ## Command line
 
 ```
-noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]
+noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always] [--silent]
 noti-fai watch
 noti-fai quit
 ```
@@ -148,8 +150,24 @@ noti-fai quit
 | `--icon` | Use this image instead (png, ico, jpg or bmp) |
 | `--hwnd` | Window to focus on click (default: the window that ran the command) |
 | `--always` | Show the ball even if that window is already in front |
+| `--silent` | Don't play a sound for this ball |
 
 `quit` removes all balls.
+
+### Sound
+
+A new ball plays the Windows notification sound, so it follows your Windows
+sound scheme and volume. If several balls arrive within a second and a half,
+the sound plays once. Balls from desktop apps (Claude, ChatGPT, …) stay quiet,
+because the app's own Windows notification already made a sound.
+
+To change it, edit `dist\noti-fai.ini`:
+
+```ini
+sound=default              # the Windows notification sound
+sound=none                 # no sound
+sound=C:\Sounds\ding.wav   # your own .wav file
+```
 
 ### Logos
 

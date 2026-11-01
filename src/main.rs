@@ -20,6 +20,7 @@ use std::rc::Rc;
 use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::Graphics::Gdi::*;
 use windows_sys::Win32::Graphics::GdiPlus as gp;
+use windows_sys::Win32::Media::Audio::{PlaySoundW, SND_ALIAS, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows_sys::Win32::System::DataExchange::COPYDATASTRUCT;
 use windows_sys::Win32::System::Diagnostics::ToolHelp::*;
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
@@ -69,14 +70,15 @@ fn main() {
 
 unsafe fn usage() {
     let text = wide(
-        "noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always]\n\
+        "noti-fai notify [--agent NAME] [--icon IMAGE] [--hwnd WINDOW] [--always] [--silent]\n\
          noti-fai watch   (turn desktop AI app notifications into balls)\n\
          noti-fai quit\n\n\
          --agent   claude, chatgpt, grok, gemini, ... (picks icons\\NAME.png,\n\
          \x20         else the installed app's own logo)\n\
          --icon    image to show on the ball (png, ico, jpg, bmp)\n\
          --hwnd    window to focus on click (default: the caller's window)\n\
-         --always  show even if that window is already in front",
+         --always  show even if that window is already in front\n\
+         --silent  no sound for this ball (all sounds: noti-fai.ini)",
     );
     MessageBoxW(null_mut(), text.as_ptr(), wide("noti-fai").as_ptr(), MB_OK);
 }
@@ -88,6 +90,7 @@ unsafe fn notify(args: &[String]) {
     let mut icon = String::new();
     let mut target: HWND = null_mut();
     let mut always = false;
+    let mut silent = false;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -108,6 +111,7 @@ unsafe fn notify(args: &[String]) {
                 target = args[i].parse::<isize>().unwrap_or(0) as HWND;
             }
             "--always" => always = true,
+            "--silent" => silent = true,
             _ => {}
         }
         i += 1;
@@ -115,16 +119,20 @@ unsafe fn notify(args: &[String]) {
     if target.is_null() {
         target = find_caller_window();
     }
-    deliver(&agent, target, &icon, null_mut(), always);
+    deliver(&agent, target, &icon, null_mut(), always, !silent);
 }
 
 /// Shows a ball: hands it to the running host or starts one. `callback`, if
 /// set, is a window that gets "click" or "dismiss" back (browser tabs).
-unsafe fn deliver(agent: &str, target: HWND, icon: &str, callback: HWND, always: bool) {
+/// `sound` asks for the notification sound (subject to noti-fai.ini).
+unsafe fn deliver(agent: &str, target: HWND, icon: &str, callback: HWND, always: bool, sound: bool) {
     if !always && !target.is_null() && GetAncestor(GetForegroundWindow(), GA_ROOT) == target {
         return; // the user is already looking at it
     }
-    let payload = format!("{agent}\t{}\t{icon}\t{}", target as isize, callback as isize);
+    let payload = format!(
+        "{agent}\t{}\t{icon}\t{}\t{}",
+        target as isize, callback as isize, sound as u8,
+    );
     let running = find_host();
     if running.is_null() || !send_payload(running, COPYDATA_MAGIC, &payload) {
         spawn_host(&payload);
@@ -324,6 +332,36 @@ struct Host {
     freq: i64,
     last_tick: i64,
     timer_on: bool,
+    sound: Sound,
+    last_sound: Option<std::time::Instant>,
+}
+
+/// From `sound=` in noti-fai.ini next to the exe.
+enum Sound {
+    /// The Windows notification sound (follows the user's sound scheme).
+    Default,
+    Off,
+    /// A .wav file (wide, NUL-terminated path).
+    File(Vec<u16>),
+}
+
+impl Sound {
+    fn from_ini(ini: &std::path::Path) -> Sound {
+        let text = std::fs::read_to_string(ini).unwrap_or_default();
+        let value = text
+            .lines()
+            .filter_map(|l| l.split_once('='))
+            .find(|(k, _)| k.trim().eq_ignore_ascii_case("sound"))
+            .map(|(_, v)| v.split('#').next().unwrap_or("").trim().trim_matches('"').to_string());
+        match value.as_deref() {
+            None | Some("") | Some("default") => Sound::Default,
+            Some("none") | Some("off") => Sound::Off,
+            Some(path) => {
+                let path = ini.parent().map_or(PathBuf::from(path), |dir| dir.join(path));
+                Sound::File(wide(&path.to_string_lossy()))
+            }
+        }
+    }
 }
 
 thread_local! {
@@ -359,10 +397,12 @@ unsafe fn run_host(mutex: HANDLE, first: &str) {
     let (mask, light, shine) = ball_shading(size as usize);
     let mut freq = 0;
     QueryPerformanceFrequency(&mut freq);
-    let icon_dir = std::env::current_exe()
+    let exe_dir = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|d| d.join("icons")))
+        .and_then(|p| p.parent().map(PathBuf::from))
         .unwrap_or_default();
+    let icon_dir = exe_dir.join("icons");
+    let sound = Sound::from_ini(&exe_dir.join("noti-fai.ini"));
     HOST.with(|cell| {
         *cell.borrow_mut() = Some(Host {
             hwnd, inst, size, mask, light, shine,
@@ -373,6 +413,8 @@ unsafe fn run_host(mutex: HANDLE, first: &str) {
             freq,
             last_tick: 0,
             timer_on: false,
+            sound,
+            last_sound: None,
         })
     });
 
@@ -399,6 +441,7 @@ impl Host {
         let target = fields.next().and_then(|t| t.parse::<isize>().ok()).unwrap_or(0) as HWND;
         let icon = fields.next().unwrap_or("");
         let callback = fields.next().and_then(|t| t.parse::<isize>().ok()).unwrap_or(0) as HWND;
+        let wants_sound = fields.next() != Some("0");
         if self.balls.len() >= MAX_BALLS {
             self.balls.remove(0).destroy();
         }
@@ -464,11 +507,33 @@ impl Host {
         self.draw(&ball);
         ShowWindow(hwnd, SW_SHOWNOACTIVATE);
         self.balls.push(ball);
+        if wants_sound {
+            self.chime();
+        }
 
         if !self.timer_on {
             QueryPerformanceCounter(&mut self.last_tick);
             SetTimer(self.hwnd, TIMER_ID, 15, None);
             self.timer_on = true;
+        }
+    }
+
+    /// Plays the notification sound asynchronously (no thread of ours waits
+    /// on it), at most once per burst of balls.
+    unsafe fn chime(&mut self) {
+        let now = std::time::Instant::now();
+        if self.last_sound.is_some_and(|t| now - t < std::time::Duration::from_millis(1500)) {
+            return;
+        }
+        self.last_sound = Some(now);
+        match &self.sound {
+            Sound::Default => {
+                PlaySoundW(wide("Notification.Default").as_ptr(), null_mut(), SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+            }
+            Sound::File(path) => {
+                PlaySoundW(path.as_ptr(), null_mut(), SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+            }
+            Sound::Off => {}
         }
     }
 

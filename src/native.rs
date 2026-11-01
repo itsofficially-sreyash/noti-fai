@@ -40,7 +40,7 @@ pub unsafe fn run() {
                 .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
                 .collect();
             let icon = field(&msg, "icon").and_then(|b64| save_icon(&agent, b64)).unwrap_or_default();
-            crate::deliver(&agent, null_mut(), &icon, relay_id as HWND, true);
+            crate::deliver(&agent, null_mut(), &icon, relay_id as HWND, true, true);
         }
         PostMessageW(relay_id as HWND, WM_CLOSE, 0, 0); // port closed
     });
