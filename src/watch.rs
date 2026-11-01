@@ -1,21 +1,28 @@
-//! `noti-fai watch`: turns notifications from desktop AI apps (Claude,
+﻿//! `noti-fai watch`: turns notifications from desktop AI apps (Claude,
 //! ChatGPT, ...) into balls.
 //!
 //! Unpackaged apps can read toasts but cannot subscribe to the "new toast"
 //! event, and reading the toast list costs ~20 ms of CPU. So the list is only
-//! read while a watched app is actually busy (it is generating a reply) and
-//! for a short while after; the busy test is one GetProcessTimes call per
-//! process on handles we keep open, a few microseconds every POLL_MS.
+//! read when a reply may be landing:
+//!
+//! - after the user switches away from an AI app (checked each poll with
+//!   GetForegroundWindow, microseconds): every poll for AWAY_FAST, then every
+//!   AWAY_SLOW_EVERY polls up to AWAY_MAX. This is the main trigger, because a
+//!   hidden Electron window barely uses CPU while it streams a reply.
+//! - while an AI app is busy (one GetProcessTimes call per process on handles
+//!   we keep open, a few microseconds) and LINGER_POLLS after.
 
 use std::collections::{HashMap, HashSet};
 use std::mem::{size_of, zeroed};
 use std::ptr::{null, null_mut};
+use std::time::{Duration, Instant};
 
 use windows::UI::Notifications::Management::{UserNotificationListener, UserNotificationListenerAccessStatus};
 use windows::UI::Notifications::NotificationKinds;
 use windows_sys::Win32::Foundation::*;
 use windows_sys::Win32::System::Diagnostics::ToolHelp::*;
 use windows_sys::Win32::System::Threading::*;
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
 use crate::wide;
 
@@ -30,6 +37,11 @@ const BUSY_CPU_MS: u64 = 40;
 const LINGER_POLLS: u32 = 10;
 /// Polls between rescans for newly started agent processes.
 const RESCAN_POLLS: u32 = 15;
+/// After leaving an AI app: read toasts every poll for this long...
+const AWAY_FAST: Duration = Duration::from_secs(120);
+/// ...then every this many polls, until AWAY_MAX (long research replies).
+const AWAY_SLOW_EVERY: u32 = 5;
+const AWAY_MAX: Duration = Duration::from_secs(30 * 60);
 
 pub unsafe fn run() {
     let _single = CreateMutexW(null(), 0, wide("Local\\NotiFaiWatch").as_ptr());
@@ -46,19 +58,40 @@ pub unsafe fn run() {
     let mut seen = HashSet::new();
     new_toasts(&listener, &mut seen); // toasts from before we started don't count
     let mut procs: HashMap<u32, (HANDLE, u64)> = HashMap::new();
+    let mut on_agent = false;
+    let mut away_since: Option<Instant> = None;
     let mut active_left = 0;
     for tick in 0u32.. {
         if tick % RESCAN_POLLS == 0 {
             rescan(&mut procs);
         }
         Sleep(POLL_MS);
+        let now_on_agent = procs.contains_key(&foreground_pid());
+        if on_agent && !now_on_agent {
+            away_since = Some(Instant::now());
+            // Toasts that arrived while we weren't reading are old news.
+            new_toasts(&listener, &mut seen);
+        } else if now_on_agent {
+            away_since = None; // back in the app: the user sees replies there
+        }
+        on_agent = now_on_agent;
         if cpu_since_last_poll(&mut procs) >= BUSY_CPU_MS {
             active_left = LINGER_POLLS;
         }
-        if active_left == 0 {
+        let away_poll = match away_since.map(|t| t.elapsed()) {
+            Some(e) if e < AWAY_FAST => true,
+            Some(e) if e < AWAY_MAX => tick % AWAY_SLOW_EVERY == 0,
+            Some(_) => {
+                away_since = None;
+                false
+            }
+            None => false,
+        };
+        if active_left > 0 {
+            active_left -= 1;
+        } else if !away_poll {
             continue;
         }
-        active_left -= 1;
         for app in new_toasts(&listener, &mut seen) {
             if let Some(agent) = AGENTS.iter().find(|a| app.contains(*a)) {
                 // The app already decided this was worth a toast (e.g. a reply
@@ -67,6 +100,12 @@ pub unsafe fn run() {
             }
         }
     }
+}
+
+unsafe fn foreground_pid() -> u32 {
+    let mut pid = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &mut pid);
+    pid
 }
 
 /// Opens handles to agent processes we are not tracking yet, drops exited ones.

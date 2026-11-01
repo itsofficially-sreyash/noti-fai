@@ -108,8 +108,10 @@ Measured on Windows 11, with a 112 px ball at 175% display scaling:
 | Ball | bouncing (~4 s) | ~2% of one core | 1.6 MB |
 | Ball | resting | 0% | 1.6 MB |
 | Ball | no ball on screen | not running | 0 |
-| Desktop watcher | an AI app is generating | ~1.25% of one core | 3 MB |
-| Desktop watcher | AI apps idle | one CPU-counter read every 2 s | 3 MB |
+| Desktop watcher | first 2 min after you leave an AI app | ~1% of one core | 3 MB |
+| Desktop watcher | 2–30 min after you leave it | ~0.2% of one core | 3 MB |
+| Desktop watcher | an AI app is busy on screen | ~1.25% of one core | 3 MB |
+| Desktop watcher | otherwise | two tiny checks every 2 s | 3 MB |
 | Browser bridge | a tab's ball is on screen | 0% | ~1 MB |
 | Browser bridge | otherwise | not running | 0 |
 
@@ -121,7 +123,11 @@ How it stays this light:
   Each frame is just "rotate the logo and multiply".
 - **A gated watcher.** Windows doesn't let normal apps subscribe to new
   notifications, and reading the list costs ~20 ms. So the watcher only reads
-  it while an AI app is actually busy, plus 20 seconds after.
+  it when a reply could be landing: after you switch away from an AI app
+  (every 2 s for 2 minutes, then every 10 s for up to 30 minutes, stopping as
+  soon as you return), or while the app is busy. Otherwise it only checks which
+  window is in front and how much CPU the AI apps used, a few microseconds
+  each.
 - **A lazy extension.** It checks the page only when the page changes, at most
   4 times a second. The connection to the desktop exists only while a ball from
   that tab is on screen.
